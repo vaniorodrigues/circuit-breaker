@@ -19,9 +19,10 @@
 # under the License.
 #
 
-import sys
 import glob
+import sys
 import time
+
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift-0.13.0/lib/py/build/lib*')[0])
 
@@ -37,10 +38,9 @@ from thrift.protocol import TBinaryProtocol
 def main():
     # Make socket
     transport = TSocket.TSocket('localhost', 9090)
-    transport.setTimeout(2000)
+    transport.setTimeout(10000)
     # Buffering is critical. Raw sockets are very slow
     transport = TTransport.TBufferedTransport(transport)
-
     # Wrap in a protocol
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     # Create a client to use the protocol encoder
@@ -48,53 +48,35 @@ def main():
 
     # Connect!
     transport.open()
+
     work = Work()
     
-    work.op = Operation.DIVIDE
-    work.num1 = 1
-    work.num2 = 0
-    '''
-    try:
-        quotient = client.calculate(1, work)
-        print('Whoa? You know how to divide by zero?')
-        print('FYI the answer is %d' % quotient)
-    except InvalidOperation as e:
-        print('InvalidOperation: %r' % e)
-
     work.op = Operation.ADD
     work.num1 = 2
     work.num2 = 2
-    sum_ = client.calculate(1, work)  
-    print('2+2=%d' % sum_)
+    result = client.calculate(1, work)  
+    print('2+2=%d' % result)
     
     work.op = Operation.SUBTRACT
     work.num1 = 15
     work.num2 = 10
-    diff = client.calculate(1, work)
-    print('15-10=%d' % diff)
+    result = client.calculate(1, work)
+    print('15-10=%d' % result)
 
-    #try:
-    #client.serverSleep10()
-    input()
-    
+    work.op = Operation.MULTIPLY
+    work.num1 = 2
+    work.num2 = 3
+    result = client.calculate(1, work)
+    print('2.3=%d' % result)
+
+    work.op = Operation.DIVIDE
+    work.num1 = 21
+    work.num2 = 3
+    result = client.calculate(1, work)
+    print('21/3=%d' % result)
+
     client.ping()
     print('ping()')
-    '''
-
-    
-    #except Thrift.TException as e:
-    #    print('%s' % e.message)
-    #    print('Deu ruim')
-    
-
-    #work.op = Operation.ADD
-    #work.num1 = 15
-    #work.num2 = 10
-    #diff = client.calculate(1, work)
-    #print('15-10=%d' % diff)
-
-    #log = client.getStruct(1)
-    #print('Check log: %s' % log.value)
 
     # Close!
     transport.close()

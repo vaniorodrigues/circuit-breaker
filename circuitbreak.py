@@ -38,7 +38,7 @@ from thrift.server import TServer
 
 from thrift import Thrift
 
-class CircuitBreaker:
+class Handler:
     def __init__(self):
         self.log = {}
 
@@ -75,10 +75,11 @@ class CircuitBreaker:
             state.connectionFail()
         transport.close()
     
-class State:
-    def __init__(self,failure_count=0,failure_threshold=5):
+class CircuitBreaker:
+    def __init__(self,failure_count=0,failure_threshold=2,reset_timeout=5):
         self.failure_count = failure_count
-        self.failure_threshold =failure_threshold
+        self.failure_threshold = failure_threshold
+        self.reset_timeout = reset_timeout
         
     def closed(self): ## Reset the count
         self.failure_count = 0
@@ -88,7 +89,7 @@ class State:
         self.failure_count +=1
         print('Failure count = %d' % self.failure_count)
         if self.failure_count == self.failure_threshold:
-            print('-> Failure Threshold reached, state moved to Open')
+            print('\n ---> Failure Threshold reached, state moved to Open')
             state.opened()
           
     def opened(self):
@@ -97,18 +98,18 @@ class State:
         state.startThreading()
 
     def halfOpen(self):
-        print('-> State moved to Half-Open, testing if connection with Server was reestablished')
+        print('\n ---> State moved to Half-Open, testing if connection with Server was reestablished')
         ## Testa para se a conexao com o servidor foi reestabelecida
         try: 
             transport.open()
             client.ping()
             transport.close()
-            print('Looks like server is online!')
+            print('\nLooks like server is online!')
             state.closed()
         except Thrift.TException as tx:   
             transport.close()  
             print('%s' % tx.message)
-            print('\n Connection test during Half-Open FAILED!! Going back to Open circuit')
+            print('\nConnection test during Half-Open FAILED!!! Going back to Open circuit')
             state.opened()
     
     def startThreading(self, success=False):
@@ -119,7 +120,7 @@ class State:
     
     def secondaryThread(self):
         print('\t Initializing secondary thread')
-        time.sleep(10)
+        time.sleep(self.reset_timeout)
         state.halfOpen() 
     
     # Handles requets from client while the circuit is open
@@ -130,7 +131,7 @@ class State:
 
 
 if __name__ == '__main__':
-    handler = CircuitBreaker()
+    handler = Handler()
     processor = Calculator.Processor(handler)
     server_transport = TSocket.TServerSocket(host='127.0.0.1', port=9090)
     tfactory = TTransport.TBufferedTransportFactory()
@@ -138,14 +139,12 @@ if __name__ == '__main__':
     server = TServer.TSimpleServer(processor, server_transport, tfactory, pfactory)
 
     transport = TSocket.TSocket('localhost', 9000)
-    transport.setTimeout(2000) ## Time out 
+    transport.setTimeout(10) ## Time out 
     transport = TTransport.TBufferedTransport(transport)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = Calculator.Client(protocol)
     
     print('Starting the circuit breaker...')
-    state = State()
+    state = CircuitBreaker()
     server.serve()
     print('done.')
-
-

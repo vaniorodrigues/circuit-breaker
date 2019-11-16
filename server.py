@@ -22,6 +22,7 @@
 import glob
 import sys
 import time
+
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift-0.13.0/lib/py/build/lib*')[0])
 
@@ -39,18 +40,16 @@ from thrift.server import TServer
 class CalculatorHandler:
     def __init__(self):
         self.log = {}
+       
 
     def ping(self):
-        time.sleep(15) ## Para dar timeout nos clientes
+        #time.sleep(10000) ## Makes the client timeout
         print('ping()')
 
-    def add(self, n1, n2):
-        print('add(%d,%d)' % (n1, n2))
-        return n1 + n2
 
     def calculate(self, logid, work):
+        #time.sleep(10000) ## Makes the client timeout
         print('calculate(%d, %r)' % (logid, work))
-
         if work.op == Operation.ADD:
             val = work.num1 + work.num2
         elif work.op == Operation.SUBTRACT:
@@ -84,6 +83,11 @@ class CalculatorHandler:
     def zip(self):
         print('zip()')
 
+    def add(self, n1, n2):
+        print('add(%d,%d)' % (n1, n2))
+        return n1 + n2
+
+
 
 if __name__ == '__main__':
     handler = CalculatorHandler()
@@ -95,7 +99,6 @@ if __name__ == '__main__':
     server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
 
     print('Starting the server...')
-    #time.sleep(15)
     print('Server ONLINE!')
     server.serve()
     print('done.')
