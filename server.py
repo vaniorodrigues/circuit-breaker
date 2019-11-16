@@ -43,12 +43,12 @@ class CalculatorHandler:
        
 
     def ping(self):
-        #time.sleep(10000) ## Makes the client timeout
+        #time.sleep(10000) ## Makes the client, in this case the circuit breaker, timeout
         print('ping()')
 
 
     def calculate(self, logid, work):
-        #time.sleep(10000) ## Makes the client timeout
+        #time.sleep(10000)
         print('calculate(%d, %r)' % (logid, work))
         if work.op == Operation.ADD:
             val = work.num1 + work.num2

@@ -43,9 +43,8 @@ class Handler:
         self.log = {}
 
     def ping(self):
-        if state.failure_count == state.failure_threshold:
+        if state.failure_count == state.failure_threshold: 
             state.circuitOpen()
-            # Circuit is currently open, no connections client-server allowed
         try:
             transport.open()
             client.ping()
@@ -81,25 +80,23 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.reset_timeout = reset_timeout
         
-    def closed(self): ## Reset the count
+    def closed(self): ## Resets the failure_count, all good here
         self.failure_count = 0
         print('Connection CLIENT-SERVER OK, circuit is currently closed')
     
-    def connectionFail(self): ## Increase the count
+    def connectionFail(self): ## Increase the failure_count, something is not working properly
         self.failure_count +=1
         print('Failure count = %d' % self.failure_count)
         if self.failure_count == self.failure_threshold:
             print('\n ---> Failure Threshold reached, state moved to Open')
             state.opened()
           
-    def opened(self):
-        #self.failure_count +=1
+    def opened(self): ## Server is in open state, need to start a secondary thread to handle the requests from client and test connection with server at the same time
         print('Circuit in Opened State')
         state.startThreading()
 
-    def halfOpen(self):
+    def halfOpen(self): ## Tests rather or not connection with Server was reestabilished
         print('\n ---> State moved to Half-Open, testing if connection with Server was reestablished')
-        ## Testa para se a conexao com o servidor foi reestabelecida
         try: 
             transport.open()
             client.ping()
@@ -112,22 +109,23 @@ class CircuitBreaker:
             print('\nConnection test during Half-Open FAILED!!! Going back to Open circuit')
             state.opened()
     
-    def startThreading(self, success=False):
+    def startThreading(self, success=False): ## Starts a secondary thread to test the CB-Server connection
         t = threading.Thread(target=state.secondaryThread)
         t.daemon = True
         print('\t Initializing primary thread')
         t.start()
     
-    def secondaryThread(self):
+    def secondaryThread(self): ## Count to 5 then move from open to half-open
         print('\t Initializing secondary thread')
         time.sleep(self.reset_timeout)
         state.halfOpen() 
     
-    # Handles requets from client while the circuit is open
-    def circuitOpen(self):
+    def circuitOpen(self): ## Handles requets from client while the circuit is open
         open_message = Thrift.TApplicationException()
         open_message.message='Circuit is currently OPEN, try again later'
         raise open_message
+
+
 
 
 if __name__ == '__main__':
